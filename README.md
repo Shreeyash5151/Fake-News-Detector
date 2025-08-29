@@ -27,33 +27,33 @@ The project uses the **Fake and Real News Dataset** from Kaggle:
 ## Installation
 
 1. Clone the repository:
-```bash
+```
 git clone https://github.com/YOUR_USERNAME/FakeNewsDetection.git
 cd FakeNewsDetection
-
-2.Create virtual environment:
-
+```
+2. Create virtual environment:
+```
 python -m venv venv
 source venv/bin/activate   # Linux/macOS
 venv\Scripts\activate      # Windows
-
-To install dependencies:
-
+```
+3. To install dependencies:
+```
 pip install -r requirements.txt
 
-
-Train the model:
-
+```
+4. Train the model:
+```
 python src/train_model.py
 
-
-Run the streamlit app:
-
+```
+5. Run the streamlit app:
+```
 streamlit run app.py
 
-
-Folder Structure:
-
+```
+6. Folder Structure:
+```
 FakeNewsDetection/
 ├─ data/              # Sample CSV or dataset links
 ├─ models/            # Saved ML model and vectorizer
