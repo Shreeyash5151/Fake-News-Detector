@@ -1,34 +1,84 @@
 import streamlit as st
 import pickle
-import re
-from nltk.corpus import stopwords
-import nltk
-nltk.download('stopwords')
 import os
-import pickle
+import re
+import requests
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
 
-BASE_DIR = os.path.dirname(r"C:\Users\shree\Desktop\Lab\AI\Fake News Detector\app.py")  # folder where app.py is
-model_path = os.path.join(BASE_DIR, "models", "fake_news_model.pkl")
-vectorizer_path = os.path.join(BASE_DIR, "models", "vectorizer.pkl")
-
-model = pickle.load(open(model_path, "rb"))
-vectorizer = pickle.load(open(vectorizer_path, "rb"))
-
+# ------------------------
+# Preprocessing Function
+# ------------------------
 stop_words = set(stopwords.words('english'))
 
-# Preprocess function
 def preprocess(text):
     text = str(text).lower()
     text = re.sub(r'[^a-z\s]', '', text)
     text = ' '.join([word for word in text.split() if word not in stop_words])
     return text
 
-# Streamlit UI
-st.title("Fake News Detection")
-news = st.text_area("Paste the news here:")
+# ------------------------
+# Load Model & Vectorizer
+# ------------------------
+BASE_DIR = os.path.dirname(r"C:\Users\shree\Desktop\Lab\AI\Fake News Detector\app.py")
+model_path = os.path.join(BASE_DIR, "models", "fake_news_model.pkl")
+vectorizer_path = os.path.join(BASE_DIR, "models", "vectorizer.pkl")
 
-if st.button("Predict"):
-    clean_news = preprocess(news)
-    vect_news = vectorizer.transform([clean_news])
-    prediction = model.predict(vect_news)[0]
-    st.success("Fake News" if prediction == 1 else "Real News")
+with open(model_path, "rb") as f:
+    model = pickle.load(f)
+
+with open(vectorizer_path, "rb") as f:
+    vectorizer = pickle.load(f)
+
+# ------------------------
+# Streamlit UI
+# ------------------------
+st.set_page_config(page_title="Fake News Detection", layout="wide")
+st.title("Fake News Detection App")
+
+# User Input Section
+st.header("Predict Your Own News")
+user_input = st.text_area("Paste your news article or headline here:")
+
+if st.button("Predict User Input"):
+    if user_input.strip() != "":
+        clean_text = preprocess(user_input)
+        vect = vectorizer.transform([clean_text])
+        prediction = model.predict(vect)[0]
+        confidence = max(model.predict_proba(vect)[0]) * 100
+        st.success(f"Prediction: {'Fake' if prediction==1 else 'Real'}")
+        st.info(f"Confidence: {confidence:.2f}%")
+    else:
+        st.warning("Please enter some text for prediction.")
+
+st.markdown("---")
+
+# Real-Time News Section
+st.header("Real-Time News Detection")
+api_key = st.secrets.get("NEWSAPI_KEY", None)
+
+if api_key:
+    url = f"https://newsapi.org/v2/top-headlines?language=en&country=us&pageSize=5&apiKey={api_key}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if data["status"] == "ok":
+            for article in data["articles"]:
+                news_text = (article["title"] or "") + " " + (article["description"] or "")
+                clean_text = preprocess(news_text)
+                vect = vectorizer.transform([clean_text])
+                prediction = model.predict(vect)[0]
+                confidence = max(model.predict_proba(vect)[0]) * 100
+                
+                st.subheader(article["title"])
+                st.write(article["description"])
+                st.write(f"Prediction: {'Fake' if prediction==1 else 'Real'}")
+                st.info(f"Confidence: {confidence:.2f}%")
+                st.markdown("---")
+        else:
+            st.error("Failed to fetch news from API.")
+    except Exception as e:
+        st.error(f"Error fetching news: {e}")
+else:
+    st.warning("Please add your NewsAPI key in Streamlit secrets.")
